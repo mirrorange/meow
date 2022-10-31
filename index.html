@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>喵语翻译器</title>
+</head>
+<div class="flexbox">
+    <textarea class="texta" id="miaoyu"></textarea>
+    <div>语言元素（36个字符以内，不可重复）：<input id="yuansu" value="喵呜"> <button onclick="tomiaoyu()">转换为喵语！</button> <button
+            onclick="torenhua()">转换为人话！</button> <input type="checkbox" id="base64">使用 Base64 编码</div>
+    <textarea class="texta" id="renhua"></textarea>
+</div>
+
+
+<style>
+    .flexbox {
+        position: absolute;
+        height: 98%;
+        width: 98%;
+        display: flex;
+        justify-content: space-between;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .texta {
+        width: 75%;
+        height: 40%;
+        flex-shrink: 0;
+    }
+
+    #yuansu {
+        text-align: center;
+    }
+</style>
+
+<script>
+    var keyStr = "ABCDEFGHIJKLMNOP" +
+        "QRSTUVWXYZabcdef" +
+        "ghijklmnopqrstuv" +
+        "wxyz0123456789+/" +
+        "=";
+    function encode64(input) {
+        input = escape(input);
+        var output = "";
+        var chr1, chr2, chr3 = "";
+        var enc1, enc2, enc3, enc4 = "";
+        var i = 0;
+        do {
+            chr1 = input.charCodeAt(i++);
+            chr2 = input.charCodeAt(i++);
+            chr3 = input.charCodeAt(i++);
+            enc1 = chr1 >> 2;
+            enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+            enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+            enc4 = chr3 & 63;
+            if (isNaN(chr2)) {
+                enc3 = enc4 = 64;
+            }
+            else if (isNaN(chr3)) {
+                enc4 = 64;
+            }
+            output = output +
+                keyStr.charAt(enc1) +
+                keyStr.charAt(enc2) +
+                keyStr.charAt(enc3) +
+                keyStr.charAt(enc4);
+            chr1 = chr2 = chr3 = "";
+            enc1 = enc2 = enc3 = enc4 = "";
+        } while (i < input.length);
+        return output;
+    }
+    function decode64(input) {
+        var output = "";
+        var chr1, chr2, chr3 = "";
+        var enc1, enc2, enc3, enc4 = "";
+        var i = 0;
+        // remove all characters that are not A-Z, a-z, 0-9, +, /, or =
+        //var base64test = /[^A-Za-z0-9\+\/\=]/g;
+        //if (base64test.exec(input)) {
+        //    alert("猫语有误！可能存在错误翻译！");
+        //}
+        input = input.replace(/[^A-Za-z0-9\+\/\=]/g, "");
+        do {
+            enc1 = keyStr.indexOf(input.charAt(i++));
+            enc2 = keyStr.indexOf(input.charAt(i++));
+            enc3 = keyStr.indexOf(input.charAt(i++));
+            enc4 = keyStr.indexOf(input.charAt(i++));
+            chr1 = (enc1 << 2) | (enc2 >> 4);
+            chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+            chr3 = ((enc3 & 3) << 6) | enc4;
+            output = output + String.fromCharCode(chr1);
+            if (enc3 != 64) {
+                output = output + String.fromCharCode(chr2);
+            }
+            if (enc4 != 64) {
+                output = output + String.fromCharCode(chr3);
+            }
+            chr1 = chr2 = chr3 = "";
+            enc1 = enc2 = enc3 = enc4 = "";
+        } while (i < input.length);
+        return unescape(output);
+    }
+</script>
+
+<script>
+    function text_to_numarr(text, char) {
+        var num = "0123456789abcdefghijklmnopqrstuvwxyz"
+        var list = {};
+        for (let i in char) {
+            list[num[char.length - i - 1]] = char[i];
+        }
+        for (let n in list) {
+            text = text.replaceAll(list[n], n);
+        }
+        var text_arr = text.split(" ");
+        var numarr = [];
+        for (let t of text_arr) {
+            numarr.push(parseInt(t, char.length));
+        }
+        return numarr;
+    }
+
+    function numarr_to_text(numarr, char) {
+        var num = "0123456789abcdefghijklmnopqrstuvwxyz"
+        var list = {};
+        for (let i in char) {
+            list[num[char.length - i - 1]] = char[i];
+        }
+        var text = "";
+        for (let num of numarr) {
+            text += num.toString(char.length) + " ";
+        }
+        for (let n in list) {
+            text = text.replaceAll(n, list[n]);
+        }
+        return text;
+    }
+
+    function renhua(miaoyu, char, b64) {
+        var numarr = text_to_numarr(miaoyu, char)
+        var text = "";
+        for (num of numarr) {
+            text += String.fromCharCode(num);
+        }
+        if (b64) {
+            text = decode64(text)
+        }
+        return text;
+    }
+    function miaoyu(renhua, char, b64) {
+        var numarr = []
+        var str = renhua;
+        if (b64) {
+            str = encode64(str)
+        }
+        for (let i in str) {
+            numarr.push(str.charCodeAt(i));
+        }
+        return numarr_to_text(numarr, char);
+    }
+    function torenhua() {
+        var char = document.getElementById("yuansu").value;
+        var miaoyu = document.getElementById("miaoyu").value;
+        var b64 = document.getElementById("base64").checked;
+        document.getElementById("renhua").value = renhua(miaoyu, char, b64);
+    }
+    function tomiaoyu() {
+        var char = document.getElementById("yuansu").value;
+        var renhua = document.getElementById("renhua").value;
+        var b64 = document.getElementById("base64").checked;
+        document.getElementById("miaoyu").value = miaoyu(renhua, char, b64);
+    }
+</script>
+
+</html>
